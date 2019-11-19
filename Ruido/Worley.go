@@ -7,14 +7,15 @@ import (
 	"sort"
 )
 
-
 // TODO : Implementar Worley2D
 // TODO : Es leeeeeeennnnnntooooooo
 
 // Distribución de Poisson
 // No estaría mal encontrar la forma de generarla en automático.
 //
-var distP [10]int = [10]int{4, 4, 6, 5, 3, 4, 8, 8, 7, 5}
+//var distP [10]int = [10]int{4, 4, 6, 5, 3, 4, 8, 8, 7, 5}
+//var distP [10]int = [10]int{2, 2, 2, 2, 2, 2, 2, 2, 2, 2}
+var distP [10]int = [10]int{1, 1, 1, 1, 1, 1, 1, 1, 1, 1}
 
 // Calculo una semilla diferente para cada uno de los cubos.
 //
@@ -65,10 +66,12 @@ func geometric() float64 {
 func generatePoint(seed int, cube Vectores.Vector) Vectores.Vector {
 
 	var point Vectores.Vector
+	var uniforme float64
 
-	point.X = uniform() + float64(cube.X)
-	point.Y = uniform() + float64(cube.Y)
-	point.Z = uniform() + float64(cube.Z)
+	uniforme = uniform()
+	point.X = uniforme + cube.X
+	point.Y = uniforme + cube.Y
+	point.Z = uniforme + cube.Z
 
 	return point
 }
@@ -136,8 +139,50 @@ func Worley3D(punto Vectores.Vector) float64 {
 
 				sort.Float64s(distancias)
 
-				if distancias[1] < minimo {
-					minimo = distancias[1]
+				if distancias[0] < minimo {
+					minimo = distancias[0]
+				}
+			}
+		}
+	}
+	return Clip(minimo, 0, 1)
+
+}
+
+func Worley3D2(punto Vectores.Vector) float64 {
+	var minimo float64 = 1000
+	var seed int
+	var points int
+
+	var cx int
+	var cy int
+	var cz int
+
+	var cube Vectores.Vector
+	var dummy Vectores.Vector
+
+	for cx = int(math.Floor(punto.X - 1)); cx <= int(math.Floor(punto.X+2)); cx++ {
+		for cy = int(math.Floor(punto.Y - 1)); cy <= int(math.Floor(punto.Y+2)); cy++ {
+			for cz = int(math.Floor(punto.Z - 1)); cz <= int(math.Floor(punto.Z+2)); cz++ {
+				cube.X = float64(cx)
+				cube.Y = float64(cy)
+				cube.Z = float64(cz)
+
+				seed = calculateSeed(cube)
+				//points = pointNumber(seed)
+				points = 1
+				distancias := make([]float64, points)
+
+				for cp := 0; cp < points; cp++ {
+					rand.Seed(int64(seed))
+					dummy = generatePoint(seed, cube)
+					distancias[cp] = euclidean(punto, dummy)
+				}
+
+				sort.Float64s(distancias)
+
+				if distancias[0] < minimo {
+					minimo = distancias[0]
 				}
 			}
 		}

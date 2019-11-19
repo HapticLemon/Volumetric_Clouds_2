@@ -7,13 +7,16 @@ import (
 	"image"
 	"image/color"
 	"image/jpeg"
+	"io/ioutil"
 	"math"
 	"os"
 )
 
-func loadWeatherMap() [WEATHER_WIDTH][WEATHER_HEIGHT] color.RGBA {
+// Cargo el weatherMap desde archivo para no tener que generarlo.
+//
+func loadWeatherMap() [WEATHER_WIDTH][WEATHER_HEIGHT]color.RGBA {
 
-	var weatherMap [WEATHER_WIDTH][WEATHER_HEIGHT] color.RGBA
+	var weatherMap [WEATHER_WIDTH][WEATHER_HEIGHT]color.RGBA
 
 	imgfile, err := os.Open("./weatherMap.jpg")
 
@@ -65,8 +68,8 @@ func loadWeatherMap() [WEATHER_WIDTH][WEATHER_HEIGHT] color.RGBA {
 // Genera una imagen con el mapa del tiempo y la guarda en archivo para no tener que hacerlo
 // cada vez, ya que Worley es MUY lento.
 //
-func genetareWeatherMap(){
-	var  ruido2D float64 = 0
+func genetareWeatherMap() {
+	var ruido2D float64 = 0
 	var color color.RGBA
 
 	img := image.NewRGBA(image.Rect(0, 0, WEATHER_WIDTH, WEATHER_HEIGHT))
@@ -76,17 +79,27 @@ func genetareWeatherMap(){
 		os.Exit(1)
 	}
 
-	for x:= 0 ; x < WEATHER_WIDTH - 1 ; x++ {
-		for y:= 0 ; y < WEATHER_HEIGHT - 1 ; y++ {
+	for x := 0; x < WEATHER_WIDTH-1; x++ {
+		for y := 0; y < WEATHER_HEIGHT-1; y++ {
 
-			ruido2D = Ruido.Noise2(float64(x) * LOW_COVERAGE_NOISE, float64(y) * LOW_COVERAGE_NOISE) * 255
+			ruido2D = 255 * Ruido.Worley3D2(Vectores.Vector{X: float64(x) * HIGH_COVERAGE_NOISE, Y: float64(y) * HIGH_COVERAGE_NOISE, Z: 0})
 			color.R = uint8(math.Abs(ruido2D))
 
-			ruido2D = 255 *  Ruido.Worley3D(Vectores.Vector{X : float64(x) * HIGH_COVERAGE_NOISE, Y : float64(y) * HIGH_COVERAGE_NOISE, Z: 0})
+			//ruido2D = Ruido.Worley3D(Vectores.Vector{X : float64(x) * HIGH_COVERAGE_NOISE, Y : float64(y) * HIGH_COVERAGE_NOISE, Z: 0})
 			color.G = uint8(math.Abs(ruido2D))
 
-			color.B = 120
-			color.A = 120
+			color.B = uint8(math.Abs(ruido2D))
+			color.A = uint8(math.Abs(ruido2D))
+
+			/*			ruido2D = Ruido.Noise2(float64(x) * LOW_COVERAGE_NOISE, float64(y) * LOW_COVERAGE_NOISE) * 255
+						color.R = uint8(math.Abs(ruido2D))
+
+						ruido2D = 255 *  Ruido.Worley3D(Vectores.Vector{X : float64(x) * HIGH_COVERAGE_NOISE, Y : float64(y) * HIGH_COVERAGE_NOISE, Z: 0})
+						//ruido2D = Ruido.Worley3D(Vectores.Vector{X : float64(x) * HIGH_COVERAGE_NOISE, Y : float64(y) * HIGH_COVERAGE_NOISE, Z: 0})
+						color.G = uint8(math.Abs(ruido2D))
+
+						color.B = 120
+						color.A = 120*/
 
 			img.Set(x, y, color)
 		}
@@ -104,6 +117,80 @@ func genetareWeatherMap(){
 
 	fmt.Printf("Generated image to %s \n", "weatherMap.jpg")
 
+}
+
+func generateNoiseCube() {
+	var noiseCube [NOISECUBE_X][NOISECUBE_Y][NOISECUBE_Z]byte
+
+	for x := 0; x < NOISECUBE_X-1; x++ {
+		for y := 0; y < NOISECUBE_Y-1; y++ {
+			for z := 0; z < NOISECUBE_Z-1; z++ {
+				noiseCube[x][y][z] = byte(255 * Ruido.Worley3D2(Vectores.Vector{X: float64(x) * HIGH_COVERAGE_NOISE, Y: float64(y) * HIGH_COVERAGE_NOISE, Z: float64(z) * HIGH_COVERAGE_NOISE}))
+			}
+		}
+	}
+
+	buffer := make([]byte, NOISECUBE_X*NOISECUBE_Y*NOISECUBE_Z)
+	for x := 0; x < NOISECUBE_X-1; x++ {
+		for y := 0; y < NOISECUBE_Y-1; y++ {
+			for z := 0; z < NOISECUBE_Z-1; z++ {
+				buffer[x+NOISECUBE_X*(y+NOISECUBE_Z*z)] = noiseCube[x][y][z]
+			}
+		}
+	}
+
+	err := ioutil.WriteFile("/home/john/go/src/Volumetric_Clouds_2/noiseCube.noi", buffer, 0644)
+	if err != nil {
+		panic(err)
+	}
 
 }
 
+func generateNoiseCubeRGBA() {
+	var noiseCube [NOISECUBE_X][NOISECUBE_Y][NOISECUBE_Z]color.RGBA
+
+	for x := 0; x < NOISECUBE_X-1; x++ {
+		for y := 0; y < NOISECUBE_Y-1; y++ {
+			for z := 0; z < NOISECUBE_Z-1; z++ {
+				noiseCube[x][y][z].R = byte(255 * Ruido.Worley3D2(Vectores.Vector{X: float64(x) * HIGH_COVERAGE_NOISE, Y: float64(y) * HIGH_COVERAGE_NOISE, Z: float64(z) * HIGH_COVERAGE_NOISE}))
+				noiseCube[x][y][z].G = byte(255 * Ruido.Worley3D2(Vectores.Vector{X: float64(x) * HIGH_COVERAGE_NOISE, Y: float64(y) * HIGH_COVERAGE_NOISE, Z: float64(z) * HIGH_COVERAGE_NOISE}))
+				noiseCube[x][y][z].B = byte(255 * Ruido.Worley3D2(Vectores.Vector{X: float64(x) * HIGH_COVERAGE_NOISE, Y: float64(y) * HIGH_COVERAGE_NOISE, Z: float64(z) * HIGH_COVERAGE_NOISE}))
+				noiseCube[x][y][z].A = byte(255 * Ruido.Worley3D2(Vectores.Vector{X: float64(x) * HIGH_COVERAGE_NOISE, Y: float64(y) * HIGH_COVERAGE_NOISE, Z: float64(z) * HIGH_COVERAGE_NOISE}))
+			}
+		}
+	}
+
+	buffer := make([]byte, NOISECUBE_X*NOISECUBE_Y*NOISECUBE_Z)
+	for x := 0; x < NOISECUBE_X-1; x++ {
+		for y := 0; y < NOISECUBE_Y-1; y++ {
+			for z := 0; z < NOISECUBE_Z-1; z++ {
+				buffer[x+NOISECUBE_X*(y+NOISECUBE_Z*z)] = noiseCube[x][y][z]
+			}
+		}
+	}
+
+	err := ioutil.WriteFile("/home/john/go/src/Volumetric_Clouds_2/noiseCube.noi", buffer, 0644)
+	if err != nil {
+		panic(err)
+	}
+
+}
+
+func loadCubeNoise() [NOISECUBE_X][NOISECUBE_Y][NOISECUBE_Z]byte {
+	var noiseCube [NOISECUBE_X][NOISECUBE_Y][NOISECUBE_Z]byte
+
+	buffer, err := ioutil.ReadFile("/home/john/go/src/Volumetric_Clouds_2/noiseCube.noi")
+	if err != nil {
+		panic(err)
+	}
+
+	for x := 0; x < NOISECUBE_X-1; x++ {
+		for y := 0; y < NOISECUBE_Y-1; y++ {
+			for z := 0; z < NOISECUBE_Z-1; z++ {
+				noiseCube[x][y][z] = buffer[x+NOISECUBE_X*(y+NOISECUBE_Z*z)]
+			}
+		}
+	}
+
+	return noiseCube
+}

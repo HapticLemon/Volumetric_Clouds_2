@@ -35,7 +35,7 @@ func (a Vector) Dot(b Vector) float64 {
 }
 
 func (a Vector) Length() float64 {
-	return math.Sqrt(a.Dot(a))
+	return float64(math.Sqrt(float64(a.Dot(a))))
 }
 
 func (a Vector) Normalize() Vector {
