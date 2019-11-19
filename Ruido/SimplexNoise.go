@@ -35,7 +35,7 @@ package Ruido
 
 // We don't need to include this. It does no harm, but no use either.
 
-func FASTFLOOR(x float64) int {
+func FASTFLOOR(x float32) int {
 	if x > 0 {
 		return int(x)
 	}
@@ -106,30 +106,30 @@ var perm = [512]uint8{
  * float SLnoise = (noise(x,y,z) + 1.0) * 0.5;
  */
 
-func Q(cond bool, v1 float64, v2 float64) float64 {
+func Q(cond bool, v1 float32, v2 float32) float32 {
 	if cond {
 		return v1
 	}
 	return v2
 }
 
-func grad1(hash uint8, x float64) float64 {
+func grad1(hash uint8, x float32) float32 {
 	h := hash & 15
-	grad := float64(1 + h&7) // Gradient value 1.0, 2.0, ..., 8.0
+	grad := float32(1 + h&7) // Gradient value 1.0, 2.0, ..., 8.0
 	if h&8 != 0 {
 		grad = -grad // Set a random sign for the gradient
 	}
 	return grad * x // Multiply the gradient with the distance
 }
 
-func grad2(hash uint8, x float64, y float64) float64 {
+func grad2(hash uint8, x float32, y float32) float32 {
 	h := hash & 7       // Convert low 3 bits of hash code
 	u := Q(h < 4, x, y) // into 8 simple gradient directions,
 	v := Q(h < 4, y, x) // and compute the dot product with (x,y).
 	return Q(h&1 != 0, -u, u) + Q(h&2 != 0, -2*v, 2*v)
 }
 
-func grad3(hash uint8, x, y, z float64) float64 {
+func grad3(hash uint8, x, y, z float32) float32 {
 	h := hash & 15                                // Convert low 4 bits of hash code into 12 simple
 	u := Q(h < 8, x, y)                           // gradient directions, and compute dot product.
 	v := Q(h < 4, y, Q(h == 12 || h == 14, x, z)) // Fix repeats at h = 12 to 15
@@ -137,10 +137,10 @@ func grad3(hash uint8, x, y, z float64) float64 {
 }
 
 // 1D simplex noise
-func Noise1(x float64) float64 {
+func Noise1(x float32) float32 {
 	i0 := FASTFLOOR(x)
 	i1 := i0 + 1
-	x0 := x - float64(i0)
+	x0 := x - float32(i0)
 	x1 := x0 - 1
 
 	t0 := 1 - x0*x0
@@ -158,12 +158,12 @@ func Noise1(x float64) float64 {
 }
 
 // 2D simplex noise
-func Noise2(x, y float64) float64 {
+func Noise2(x, y float32) float32 {
 
 	const F2 = 0.366025403 // F2 = 0.5*(sqrt(3.0)-1.0)
 	const G2 = 0.211324865 // G2 = (3.0-Math.sqrt(3.0))/6.0
 
-	var n0, n1, n2 float64 // Noise contributions from the three corners
+	var n0, n1, n2 float32 // Noise contributions from the three corners
 
 	// Skew the input space to determine which simplex cell we're in
 	s := (x + y) * F2 // Hairy factor for 2D
@@ -172,9 +172,9 @@ func Noise2(x, y float64) float64 {
 	i := FASTFLOOR(xs)
 	j := FASTFLOOR(ys)
 
-	t := float64(i+j) * G2
-	X0 := float64(i) - t // Unskew the cell origin back to (x,y) space
-	Y0 := float64(j) - t
+	t := float32(i+j) * G2
+	X0 := float32(i) - t // Unskew the cell origin back to (x,y) space
+	Y0 := float32(j) - t
 	x0 := x - X0 // The x,y distances from the cell origin
 	y0 := y - Y0
 
@@ -193,8 +193,8 @@ func Noise2(x, y float64) float64 {
 	// a step of (0,1) in (i,j) means a step of (-c,1-c) in (x,y), where
 	// c = (3-sqrt(3))/6
 
-	x1 := x0 - float64(i1) + G2 // Offsets for middle corner in (x,y) unskewed coords
-	y1 := y0 - float64(j1) + G2
+	x1 := x0 - float32(i1) + G2 // Offsets for middle corner in (x,y) unskewed coords
+	y1 := y0 - float32(j1) + G2
 	x2 := x0 - 1 + 2*G2 // Offsets for last corner in (x,y) unskewed coords
 	y2 := y0 - 1 + 2*G2
 
@@ -233,13 +233,13 @@ func Noise2(x, y float64) float64 {
 }
 
 // 3D simplex noise
-func Noise3(x, y, z float64) float64 {
+func Noise3(x, y, z float32) float32 {
 
 	// Simple skewing factors for the 3D case
 	const F3 = 0.333333333
 	const G3 = 0.166666667
 
-	var n0, n1, n2, n3 float64 // Noise contributions from the four corners
+	var n0, n1, n2, n3 float32 // Noise contributions from the four corners
 
 	// Skew the input space to determine which simplex cell we're in
 	s := (x + y + z) * F3 // Very nice and simple skew factor for 3D
@@ -250,13 +250,13 @@ func Noise3(x, y, z float64) float64 {
 	j := FASTFLOOR(ys)
 	k := FASTFLOOR(zs)
 
-	t := float64(i+j+k) * G3
-	X0 := float64(i) - t // Unskew the cell origin back to (x,y,z) space
-	Y0 := float64(j) - t
-	Z0 := float64(k) - t
-	x0 := float64(x) - X0 // The x,y,z distances from the cell origin
-	y0 := float64(y) - Y0
-	z0 := float64(z) - Z0
+	t := float32(i+j+k) * G3
+	X0 := float32(i) - t // Unskew the cell origin back to (x,y,z) space
+	Y0 := float32(j) - t
+	Z0 := float32(k) - t
+	x0 := float32(x) - X0 // The x,y,z distances from the cell origin
+	y0 := float32(y) - Y0
+	z0 := float32(z) - Z0
 
 	// For the 3D case, the simplex shape is a slightly irregular tetrahedron.
 	// Determine which simplex we are in.
@@ -317,12 +317,12 @@ func Noise3(x, y, z float64) float64 {
 	// a step of (0,0,1) in (i,j,k) means a step of (-c,-c,1-c) in (x,y,z), where
 	// c = 1/6.
 
-	x1 := x0 - float64(i1) + G3 // Offsets for second corner in (x,y,z) coords
-	y1 := y0 - float64(j1) + G3
-	z1 := z0 - float64(k1) + G3
-	x2 := x0 - float64(i2) + 2*G3 // Offsets for third corner in (x,y,z) coords
-	y2 := y0 - float64(j2) + 2*G3
-	z2 := z0 - float64(k2) + 2*G3
+	x1 := x0 - float32(i1) + G3 // Offsets for second corner in (x,y,z) coords
+	y1 := y0 - float32(j1) + G3
+	z1 := z0 - float32(k1) + G3
+	x2 := x0 - float32(i2) + 2*G3 // Offsets for third corner in (x,y,z) coords
+	y2 := y0 - float32(j2) + 2*G3
+	z2 := z0 - float32(k2) + 2*G3
 	x3 := x0 - 1 + 3*G3 // Offsets for last corner in (x,y,z) coords
 	y3 := y0 - 1 + 3*G3
 	z3 := z0 - 1 + 3*G3

@@ -4,7 +4,6 @@ import (
 	"../Vectores"
 	"math"
 	"math/rand"
-	"sort"
 )
 
 // TODO : Implementar Worley2D
@@ -41,18 +40,19 @@ func pointNumber(seed int) int {
 
 // uniform returns a uniformly random float in [0,1).
 // https://stackoverflow.com/users/5181219/ted
-func uniform() float64 {
+func uniform() float32 {
 	var sig uint64
 
 	sig = rand.Uint64() % (1 << 52)
-	return (1 + float64(sig)/(1<<52)) / math.Pow(2, geometric())
+	//return (1 + float32(sig)/(1<<52)) / math.Pow(2, geometric())
+	return float32(float64(1+float32(sig)/(1<<52)) / math.Pow(2, float64(geometric())))
 }
 
 // geometric returns a number picked from a geometric
 // distribution of parameter 0.5.
 // https://stackoverflow.com/users/5181219/ted
-func geometric() float64 {
-	var b float64 = 1
+func geometric() float32 {
+	var b float32 = 1
 	for rand.Uint64()%2 == 0 {
 		b++
 	}
@@ -66,7 +66,7 @@ func geometric() float64 {
 func generatePoint(seed int, cube Vectores.Vector) Vectores.Vector {
 
 	var point Vectores.Vector
-	var uniforme float64
+	var uniforme float32
 
 	uniforme = uniform()
 	point.X = uniforme + cube.X
@@ -79,11 +79,12 @@ func generatePoint(seed int, cube Vectores.Vector) Vectores.Vector {
 // Distancia euclídea entre dos puntos.
 // Quizá exista dentro de alguna librería
 //
-func euclidean(punto Vectores.Vector, coord Vectores.Vector) float64 {
-	var distancia float64
+func euclidean(punto Vectores.Vector, coord Vectores.Vector) float32 {
+	var distancia float32
 
-	distancia = math.Sqrt(math.Pow((coord.X-punto.X), 2) + math.Pow((coord.Y-punto.Y), 2) + math.Pow((coord.Z-punto.Z), 2))
-
+	distancia = float32(math.Sqrt(float64(math.Pow(float64(coord.X-punto.X), 2)))) +
+		float32(math.Sqrt(float64(math.Pow(float64(coord.Y-punto.Y), 2)))) +
+		float32(math.Sqrt(float64(math.Pow(float64(coord.Z-punto.Z), 2))))
 	return distancia
 
 }
@@ -91,7 +92,7 @@ func euclidean(punto Vectores.Vector, coord Vectores.Vector) float64 {
 // Función clip. Devuelve valor siempre que esté entre min y max; de lo contrario
 // retorna uno de éstos valores.
 //
-func Clip(valor float64, min float64, max float64) float64 {
+func Clip(valor float32, min float32, max float32) float32 {
 	if valor < min {
 		return min
 	}
@@ -108,8 +109,12 @@ func Clip(valor float64, min float64, max float64) float64 {
 //   https://github.com/bhickey/worley/blob/master/worley.c
 //   https://www.kdnuggets.com/2017/08/comparing-distance-measurements-python-scipy.html
 //
-func Worley3D(punto Vectores.Vector) float64 {
-	var minimo float64 = 1000
+// Es la versión de varios puntos por cubo. Con solo uno funciona igual de bien.
+// El problema está en la lentitud de rand.seed()
+//
+/*
+func Worley3D(punto Vectores.Vector) float32 {
+	var minimo float32 = 1000
 	var seed int
 	var points int
 
@@ -120,24 +125,24 @@ func Worley3D(punto Vectores.Vector) float64 {
 	var cube Vectores.Vector
 	var dummy Vectores.Vector
 
-	for cx = int(math.Floor(punto.X - 1)); cx <= int(math.Floor(punto.X+2)); cx++ {
-		for cy = int(math.Floor(punto.Y - 1)); cy <= int(math.Floor(punto.Y+2)); cy++ {
-			for cz = int(math.Floor(punto.Z - 1)); cz <= int(math.Floor(punto.Z+2)); cz++ {
-				cube.X = float64(cx)
-				cube.Y = float64(cy)
-				cube.Z = float64(cz)
+	for cx = int(math.Floor(float64(punto.X - 1))); cx <= int(math.Floor(float64(punto.X+2))); cx++ {
+		for cy = int(math.Floor(float64(punto.Y - 1))); cy <= int(math.Floor(float64(punto.Y+2))); cy++ {
+			for cz = int(math.Floor(float64(punto.Z - 1))); cz <= int(math.Floor(float64(punto.Z+2))); cz++ {
+				cube.X = float32(cx)
+				cube.Y = float32(cy)
+				cube.Z = float32(cz)
 
 				seed = calculateSeed(cube)
 				points = pointNumber(seed)
 
-				distancias := make([]float64, points)
+				distancias := make([]float32, points)
 
 				for cp := 0; cp < points; cp++ {
 					dummy = generatePoint(seed, cube)
 					distancias[cp] = euclidean(punto, dummy)
 				}
 
-				sort.Float64s(distancias)
+				sort.float32s(distancias)
 
 				if distancias[0] < minimo {
 					minimo = distancias[0]
@@ -148,11 +153,11 @@ func Worley3D(punto Vectores.Vector) float64 {
 	return Clip(minimo, 0, 1)
 
 }
+*/
 
-func Worley3D2(punto Vectores.Vector) float64 {
-	var minimo float64 = 1000
+func Worley3D2(punto Vectores.Vector) float32 {
+	var minimo float32 = 1000
 	var seed int
-	var points int
 
 	var cx int
 	var cy int
@@ -161,28 +166,24 @@ func Worley3D2(punto Vectores.Vector) float64 {
 	var cube Vectores.Vector
 	var dummy Vectores.Vector
 
-	for cx = int(math.Floor(punto.X - 1)); cx <= int(math.Floor(punto.X+2)); cx++ {
-		for cy = int(math.Floor(punto.Y - 1)); cy <= int(math.Floor(punto.Y+2)); cy++ {
-			for cz = int(math.Floor(punto.Z - 1)); cz <= int(math.Floor(punto.Z+2)); cz++ {
-				cube.X = float64(cx)
-				cube.Y = float64(cy)
-				cube.Z = float64(cz)
+	var distancia float32
+
+	for cx = int(math.Floor(float64(punto.X - 1))); cx <= int(math.Floor(float64(punto.X+2))); cx++ {
+		for cy = int(math.Floor(float64(punto.Y - 1))); cy <= int(math.Floor(float64(punto.Y+2))); cy++ {
+			for cz = int(math.Floor(float64(punto.Z - 1))); cz <= int(math.Floor(float64(punto.Z+2))); cz++ {
+				cube.X = float32(cx)
+				cube.Y = float32(cy)
+				cube.Z = float32(cz)
 
 				seed = calculateSeed(cube)
 				//points = pointNumber(seed)
-				points = 1
-				distancias := make([]float64, points)
 
-				for cp := 0; cp < points; cp++ {
-					rand.Seed(int64(seed))
-					dummy = generatePoint(seed, cube)
-					distancias[cp] = euclidean(punto, dummy)
-				}
+				rand.Seed(int64(seed))
+				dummy = generatePoint(seed, cube)
+				distancia = euclidean(punto, dummy)
 
-				sort.Float64s(distancias)
-
-				if distancias[0] < minimo {
-					minimo = distancias[0]
+				if distancia < minimo {
+					minimo = distancia
 				}
 			}
 		}
