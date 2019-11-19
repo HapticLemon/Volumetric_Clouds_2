@@ -314,12 +314,12 @@ func SAT(valor float32) float32 {
 
 // Función de remap para cambiar el espectro de valores.
 //
-func remap(v float32, l0 float32, h0 float32, ln float32, hn float32) float32 {
+func R(v float32, l0 float32, h0 float32, ln float32, hn float32) float32 {
 	return ln + (((v - l0) * (hn - ln)) / (h0 - l0))
 }
 
 // Interpolación lineal entre dos valores.
 //
-func li(v0 float32, v1 float32, ival float32) float32 {
+func Li(v0 float32, v1 float32, ival float32) float32 {
 	return (1-ival)*v0 + ival*v1
 }

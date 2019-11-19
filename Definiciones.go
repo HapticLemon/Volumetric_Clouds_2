@@ -31,8 +31,13 @@ var correccion float32 = 0.5
 var EYE = Vectores.Vector{0, 0, 0}
 
 const GC float32 = 0.5
+const GD float32 = 0.2
 
 // Alturas entre las que se encuentra la capa de nubes.
 const HMIN = 20
 const HMAX = 50
+const HINTERVAL = HMAX - HMIN
+
 const MAXHORIZON = 500
+const MAXX = 250
+const MINX = -250
