@@ -4,7 +4,7 @@ import "math"
 
 // Vector - struct holding X Y Z values of a 3D vector
 type Vector struct {
-	X, Y, Z float32
+	X, Y, Z float64
 }
 
 func (a Vector) Add(b Vector) Vector {
@@ -22,7 +22,7 @@ func (a Vector) Sub(b Vector) Vector {
 	}
 }
 
-func (a Vector) MultiplyByScalar(s float32) Vector {
+func (a Vector) MultiplyByScalar(s float64) Vector {
 	return Vector{
 		X: a.X * s,
 		Y: a.Y * s,
@@ -30,12 +30,12 @@ func (a Vector) MultiplyByScalar(s float32) Vector {
 	}
 }
 
-func (a Vector) Dot(b Vector) float32 {
+func (a Vector) Dot(b Vector) float64 {
 	return a.X*b.X + a.Y*b.Y + a.Z*b.Z
 }
 
-func (a Vector) Length() float32 {
-	return float32(math.Sqrt(float64(a.Dot(a))))
+func (a Vector) Length() float64 {
+	return math.Sqrt(a.Dot(a))
 }
 
 func (a Vector) Normalize() Vector {
@@ -46,8 +46,8 @@ func (a Vector) Normalize() Vector {
 //
 func (a Vector) Abs() Vector {
 	return Vector{
-		X: float32(math.Abs(float64(a.X))),
-		Y: float32(math.Abs(float64(a.Y))),
-		Z: float32(math.Abs(float64(a.Z))),
+		X: math.Abs(a.X),
+		Y: math.Abs(a.Y),
+		Z: math.Abs(a.Z),
 	}
 }
