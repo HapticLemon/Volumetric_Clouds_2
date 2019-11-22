@@ -2,6 +2,7 @@ package main
 
 import (
 	"./Vectores"
+	"image/color"
 )
 
 const CUBENOISE_WIDTH int = 50
@@ -19,9 +20,9 @@ const MEDIUM_FREQ_NOISE = 0.025
 const HIGH_FREQ_NOISE = 0.1
 const HIGHEST_FREQ_NOISE = 0.25
 
-const SHAPECUBE_X = 20
-const SHAPECUBE_Y = 20
-const SHAPECUBE_Z = 20
+const SHAPECUBE_X = 80
+const SHAPECUBE_Y = 80
+const SHAPECUBE_Z = 80
 
 const DETAILCUBE_X = 32
 const DETAILCUBE_Y = 32
@@ -39,9 +40,10 @@ var ImageAspectRatio float64 = float64(WIDTH) / float64(HEIGHT)
 var correccion float64 = 0.5
 
 var EYE = Vectores.Vector{0, 0, 0}
+var SKYCOLOR = color.RGBA{0, 0, 150, 0}
 
-const GC float64 = 0.5
-const GD float64 = 0.2
+const GC float64 = 0.95
+const GD float64 = 0.01
 
 // Alturas entre las que se encuentra la capa de nubes.
 const HMIN = 20
@@ -49,5 +51,12 @@ const HMAX = 50
 const HINTERVAL = HMAX - HMIN
 
 const MAXHORIZON = 250
-const MAXX = 150
-const MINX = -150
+const MAXX = 250
+const MINX = -250
+
+const (
+	alpha       = 2.
+	beta        = 2.
+	n           = 3
+	seed  int64 = 100
+)

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"./Ruido"
 	"./Vectores"
 	"fmt"
 	"image"
@@ -13,8 +14,8 @@ import (
 
 // Calcula el valor del weathermap con los canales R y G
 //
-func calculaWMC(wc0 uint8, wc1 uint8) float64 {
-	return math.Max(float64(wc0), SAT(GC-0.5)*float64(wc1)*2)
+func calculaWMC(wc0 float64, wc1 float64) float64 {
+	return math.Max(wc0, SAT(GC-0.5)*wc1*2)
 }
 
 // Calculo el porcentaje de la altura a la que estamos en la zona de nubes [0-1]
@@ -55,20 +56,27 @@ func calculaDensidad(ro Vectores.Vector, rd Vectores.Vector, weatherMap [WEATHER
 	// Shape
 	var snsample float64
 	//var sn float32
-	var snr byte
-	var sng byte
-	var snb byte
-	var sna byte
+	var snr float64
+	var sng float64
+	var snb float64
+	var sna float64
 	// Detail
 	var dnfbm float64
 	var dnmod float64
 	var snnd float64
-	var dnr byte
-	var dng byte
-	var dnb byte
+	var dnr float64
+	var dng float64
+	var dnb float64
 
 	var t float64 = 10
 	var densidad float64 = 0
+
+	var wc0 float64
+	var wc1 float64
+	var wch float64
+	var wcd float64
+
+	var currColor color.RGBA
 
 	// Generamos puntos en la trayectoria del rayo hasta que alguno
 	// tiene altura como para estar en la capa de nubes.
@@ -87,34 +95,40 @@ func calculaDensidad(ro Vectores.Vector, rd Vectores.Vector, weatherMap [WEATHER
 			// Coordenadas remapeadas para acceder al weeathermap.
 			// Creo que no tendría que haber problema con los valores - de X/Z ya que siempre se mapean a +
 			//
-			//xremap = int(R(punto.X, MINX, MAXX, 0, float64(WEATHER_X)))
-			//zremap = int(R(punto.Z, 0, MAXHORIZON, 0, float64(WEATHER_Y)))
-
 			xremap = int(math.Abs(R(punto.X, MINX, MAXX, 0, float64(WEATHER_X))))
 			zremap = int(math.Abs(R(punto.Z, 0, MAXHORIZON, 0, float64(WEATHER_Y))))
 
-			if (xremap >= 260 && xremap <= 280) && (zremap >= 210 && zremap <= 230) {
-				fmt.Println("gaatete")
-			}
-			var componenteR = weatherMap[xremap][zremap].R
+			//var componenteG = weatherMap[xremap][zremap].R
 			//return float64(weatherMap[xremap][zremap].R)
-			return float64(componenteR)
+			//return float64(componenteG)
 
-			wmc = calculaWMC(weatherMap[xremap][zremap].R, weatherMap[xremap][zremap].R)
+			currColor = weatherMap[xremap][zremap]
 
+			// Según el documento, tienen que estar en [0-1]
+			wc0 = float64(currColor.R) / 255
+			wc1 = float64(currColor.G) / 255
+			wch = float64(currColor.B) / 255
+			wcd = float64(currColor.A) / 255
+
+			wmc = calculaWMC(wc0, wc1)
+
+			// Si no tenemos probabilidad en un punto, pasaremos a calcular el siguiente.
+			if wmc == 0 {
+				continue
+			}
 			// Ojo, las alturas van en negativo.
 			ph = calculaPH(-punto.Y)
 
 			// Inicio de Shape-altering height-function--------------------------
 			srb = SAT(R(ph, 0, 0.07, 0, 1))
-			srt = R(ph, float64(weatherMap[xremap][zremap].B)*0.2, float64(weatherMap[xremap][zremap].B), 1, 0)
+			srt = R(ph, wch*0.2, wch, 1, 0)
 			sa = srb * srt
 			// Fin de Shape-altering height-function-----------------------------
 
 			// Inicio de Density-altering height-function +++++++++++++++++++++++
 			drb = ph * SAT(R(ph, 0, 0.15, 0, 1))
 			drt = SAT(R(ph, 0.9, 1.0, 1, 0))
-			da = GD * drb * drt * float64(weatherMap[xremap][zremap].A) * 2
+			da = GD * drb * drt * wcd * 2
 			// Fin de Density-altering height-function ++++++++++++++++++++++++++
 
 			// Shape and detail noise********************************************
@@ -123,33 +137,188 @@ func calculaDensidad(ro Vectores.Vector, rd Vectores.Vector, weatherMap [WEATHER
 			yShapeCube = int(R(-punto.Y, HMIN, HMAX, 0, float64(SHAPECUBE_Y-1)))
 			zShapeCube = int(R(-punto.Z, 0, MAXHORIZON, 0, float64(SHAPECUBE_Z-1)))
 
-			snr = shapeCube[xShapeCube][yShapeCube][zShapeCube].R
-			sng = shapeCube[xShapeCube][yShapeCube][zShapeCube].G
-			snb = shapeCube[xShapeCube][yShapeCube][zShapeCube].B
-			sna = shapeCube[xShapeCube][yShapeCube][zShapeCube].A
+			currColor = shapeCube[xShapeCube][yShapeCube][zShapeCube]
+			snr = float64(currColor.R) / 255
+			sng = float64(currColor.G) / 255
+			snb = float64(currColor.B) / 255
+			sna = float64(currColor.A) / 255
 
-			snsample = R(float64(snr), float64((float64(sng)*0.625+float64(snb)*0.25+float64(sna)*0.125)-1), 1, 0, 1)
+			snsample = R(snr, (sng*0.625+snb*0.25+sna*0.125)-1, 1, 0, 1)
 
-			//sn = SAT (R(snsample * sa, 1 - GC * wmc , 1, 0, 1)) * da
+			//sn := SAT (R(snsample * sa, 1 - GC * wmc , 1, 0, 1)) * da
+			//sn = 0
+			//return sn
 
 			// Detail
 			xDetailCube = int(R(punto.X, MINX, MAXX, 0, float64(DETAILCUBE_X)))
 			yDetailCube = int(R(-punto.Y, HMIN, HMAX, 0, float64(DETAILCUBE_Y)))
 			zDetailCube = int(R(-punto.Z, 0, MAXHORIZON, 0, float64(DETAILCUBE_Z)))
 
-			dnr = detailCube[xDetailCube][yDetailCube][zDetailCube].R
-			dng = detailCube[xDetailCube][yDetailCube][zDetailCube].G
-			dnb = detailCube[xDetailCube][yDetailCube][zDetailCube].B
+			currColor = detailCube[xDetailCube][yDetailCube][zDetailCube]
 
-			dnfbm = float64(dnr)*0.625 + float64(dng)*0.25 + float64(dnb)*0.125
-			dnmod = float64(math.Exp(float64(GC*0.75))) * Li(dnfbm, 1-dnfbm, SAT(ph*5))
+			dnr = float64(currColor.R) / 255
+			dng = float64(currColor.G) / 255
+			dnb = float64(currColor.B) / 255
+
+			dnfbm = dnr*0.625 + dng*0.25 + dnb*0.125
+			dnmod = math.Exp(GC*0.75) * Li(dnfbm, 1-dnfbm, SAT(ph*5))
 
 			snnd = SAT(R(snsample*sa, 1-GC*wmc, 1, 0, 1))
 
 			// Final de shape and detail noise***********************************
 
 			// Valor final de la densidad en el punto.
-			densidad += (SAT(R(snnd, dnmod, 1, 0, 1)) * da) * 0.01
+			densidad += (SAT(R(snnd, dnmod, 1, 0, 1)) * da)
+
+		}
+	}
+	return densidad
+}
+
+func calculaDensidadTest(ro Vectores.Vector, rd Vectores.Vector, weatherMap [WEATHER_X][WEATHER_Y]color.RGBA) float64 {
+	var punto Vectores.Vector
+	var xremap int = 0
+	var zremap int = 0
+
+	// Nos servirán de coordenadas para el cubeNoise
+	/*
+		var xShapeCube int = 0
+		var yShapeCube int = 0
+		var zShapeCube int = 0
+	*/
+	// Nos servirán de coordenadas para el cubeNoise
+	/*
+		var xDetailCube int = 0
+		var yDetailCube int = 0
+		var zDetailCube int = 0
+	*/
+	//var wmc float64 = 0.0
+	//var ph float64 = 0.0
+
+	// Shape Round top y bottom
+	/*
+		var srb float64
+		var srt float64
+		var sa float64
+	*/
+	// Density Round top y bottom
+	/*
+		var drb float64
+		var drt float64
+		var da float64
+	*/
+	// Shape and detail noise.
+	// Shape
+	//	var snsample float64
+	//var sn float32
+	/*
+		var snr float64
+		var sng float64
+		var snb float64
+		var sna float64
+	*/
+
+	// Detail
+	/*
+		var dnfbm float64
+		var dnmod float64
+		var snnd float64
+		var dnr float64
+		var dng float64
+		var dnb float64
+	*/
+	var t float64 = 10
+	var densidad float64 = 0
+
+	var wc0 float64
+	//var wc1 float64
+	var wch float64
+	var wcd float64
+
+	var hCloud float64
+	var currColor color.RGBA
+	var noiseValue float64
+
+	// Generamos puntos en la trayectoria del rayo hasta que alguno
+	// tiene altura como para estar en la capa de nubes.
+	//
+	p := Ruido.NewPerlin(alpha, beta, n, seed)
+	for {
+		punto = ro.Add(rd.MultiplyByScalar(t))
+		// Si nos salimos de los límites pasamos al siguiente punto.
+		// También si el rayo no apunta hacia el cielo, ya que nunca tocará la capa de nubes.
+		//
+		if punto.Z <= -MAXHORIZON || punto.X > MAXX || punto.X < MINX || punto.Y >= 0 || densidad >= 1 {
+			break
+		}
+		t += 0.25
+		// Limitamos a la banda de alturas en la que hay nubes.
+		if punto.Y <= -HMIN && punto.Y >= -HMAX {
+			// Coordenadas remapeadas para acceder al weeathermap.
+			// Creo que no tendría que haber problema con los valores - de X/Z ya que siempre se mapean a +
+			//
+			xremap = int(math.Abs(R(punto.X, MINX, MAXX, 0, float64(WEATHER_X))))
+			zremap = int(math.Abs(R(punto.Z, 0, MAXHORIZON, 0, float64(WEATHER_Y))))
+
+			//var componenteG = weatherMap[xremap][zremap].R
+			//return float64(weatherMap[xremap][zremap].R)
+			//return float64(componenteG)
+
+			currColor = weatherMap[xremap][zremap]
+
+			// Según el documento, tienen que estar en [0-1]
+			wc0 = float64(currColor.R) / 255
+			//wc1 = float64(currColor.G) / 255
+			wch = float64(currColor.B) / 255
+			wcd = float64(currColor.A) / 255
+
+			//return wc0
+			// Si el punto no cae en el canal R que indica las nubes, salimos.
+			if wc0 == 0 {
+				continue
+			}
+
+			//wmc = calculaWMC(wc0, wc1)
+
+			// Si no tenemos probabilidad en un punto, pasaremos a calcular el siguiente.
+			/*
+				if wmc == 0 {
+					continue
+				}
+			*/
+			// Compruebo si estoy "dentro" de la nube.
+			// La altura del punto está entre HMIN y ALTURANUBE
+			hCloud = wch*HINTERVAL + HMIN
+			if -punto.Y > hCloud {
+				break
+			}
+
+			// Shape and detail noise********************************************
+			// Shape
+			/*
+				xShapeCube = int(R(punto.X, MINX, MAXX, 0, float64(SHAPECUBE_X-1)))
+				yShapeCube = int(R(-punto.Y, HMIN, HMAX, 0, float64(SHAPECUBE_Y-1)))
+				zShapeCube = int(R(-punto.Z, 0, MAXHORIZON, 0, float64(SHAPECUBE_Z-1)))
+
+				currColor = shapeCube[xShapeCube][yShapeCube][zShapeCube]
+				snr = float64(currColor.R) / 255
+				sng = float64(currColor.G) / 255
+				snb = float64(currColor.B) / 255
+				sna = float64(currColor.A) / 255
+
+				//snsample = R(snr, (sng*0.625+snb*0.25+sna*0.125)-1, 1, 0, 1)
+				//snsample += 12
+				snr *= 2
+				sng *= 2
+				snb *= 2
+				sna *= 2
+			*/
+
+			// Si estamos dentro, pasamos a calcular la densidad del punto.
+			noiseValue = math.Abs(p.Noise3D(float64(xremap)*HIGH_FREQ_NOISE, float64(zremap)*HIGH_FREQ_NOISE, hCloud*HIGH_FREQ_NOISE))
+			//noiseValue *= 2
+			wcd = 0.3 * wcd * noiseValue
+			densidad += wcd
 
 		}
 	}
@@ -171,8 +340,8 @@ func main() {
 
 	var densidad float64
 
-	var shapeCube [SHAPECUBE_X][SHAPECUBE_Y][SHAPECUBE_Z]color.RGBA
-	var detailCube [DETAILCUBE_X][DETAILCUBE_Y][DETAILCUBE_Z]color.RGBA
+	//var shapeCube [SHAPECUBE_X][SHAPECUBE_Y][SHAPECUBE_Z]color.RGBA
+	//var detailCube [DETAILCUBE_X][DETAILCUBE_Y][DETAILCUBE_Z]color.RGBA
 	var color color.RGBA
 
 	//generateWeatherMap()
@@ -187,8 +356,8 @@ func main() {
 
 	start := time.Now()
 
-	shapeCube = loadShapeCube()
-	detailCube = loadDetailCube()
+	//shapeCube = loadShapeCube()
+	//detailCube = loadDetailCube()
 	//checkNoiseCube(noiseCube)
 	duration := time.Since(start)
 	fmt.Println(duration)
@@ -227,7 +396,8 @@ func main() {
 			densidad = 0
 			rd = nuevo.Sub(ro).Normalize()
 
-			densidad = calculaDensidad(ro, rd, weatherMap, shapeCube, detailCube)
+			densidad = SAT(calculaDensidadTest(ro, rd, weatherMap))
+
 			color.R = uint8(densidad * 255)
 			color.G = uint8(densidad * 255)
 			color.B = uint8(densidad * 255)

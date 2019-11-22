@@ -2,7 +2,6 @@ package main
 
 import (
 	"./Ruido"
-	"./Vectores"
 	"fmt"
 	"image"
 	"image/color"
@@ -276,13 +275,14 @@ func generateWeatherMap() {
 		fmt.Println(err)
 		os.Exit(1)
 	}
+	p := Ruido.NewPerlin(alpha, beta, n, seed)
 
 	for x := 0; x < WEATHER_X-1; x++ {
 		for y := 0; y < WEATHER_Y-1; y++ {
-			weatherMap[x][y].R = byte(255 * SAT(Ruido.Noise2(float64(x)*LOW_FREQ_NOISE, float64(y)*LOW_FREQ_NOISE)))
-			weatherMap[x][y].G = byte(255 * Ruido.Worley3D(Vectores.Vector{X: float64(x) * MEDIUM_FREQ_NOISE, Y: float64(y) * MEDIUM_FREQ_NOISE, Z: 0}))
-			weatherMap[x][y].B = 120
-			weatherMap[x][y].A = 120
+			weatherMap[x][y].R = byte(255 * SAT(p.Noise2D(float64(x)*MEDIUM_FREQ_NOISE, float64(y)*MEDIUM_FREQ_NOISE)))
+			weatherMap[x][y].G = byte(255 * SAT(p.Noise2D(float64(x)*MEDIUM_FREQ_NOISE, float64(y)*MEDIUM_FREQ_NOISE)))
+			weatherMap[x][y].B = 100 //byte(255 * SAT(p.Noise2D(float64(x) * LOW_FREQ_NOISE,float64(y) * LOW_FREQ_NOISE)))
+			weatherMap[x][y].A = 10
 
 			color.R = weatherMap[x][y].R
 			color.G = weatherMap[x][y].G
