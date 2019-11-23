@@ -24,6 +24,12 @@ func calculaPH(h float64) float64 {
 	return (h - HMIN) / HINTERVAL
 }
 
+// Calculo el porcentaje de la altura a la que estamos en la zona de nubes [0-1]
+//
+func calculaPHTest(h float64, hcloud float64) float64 {
+	return (h - HMIN) / (hcloud - HMIN)
+}
+
 func calculaDensidad(ro Vectores.Vector, rd Vectores.Vector, weatherMap [WEATHER_X][WEATHER_Y]color.RGBA, shapeCube [SHAPECUBE_X][SHAPECUBE_Y][SHAPECUBE_Z]color.RGBA, detailCube [DETAILCUBE_X][DETAILCUBE_Y][DETAILCUBE_Z]color.RGBA) float64 {
 	var punto Vectores.Vector
 	var xremap int = 0
@@ -193,20 +199,18 @@ func calculaDensidadTest(ro Vectores.Vector, rd Vectores.Vector, weatherMap [WEA
 		var zDetailCube int = 0
 	*/
 	//var wmc float64 = 0.0
-	//var ph float64 = 0.0
+	var ph float64 = 0.0
 
 	// Shape Round top y bottom
-	/*
-		var srb float64
-		var srt float64
-		var sa float64
-	*/
+	var srb float64
+	var srt float64
+	var sa float64
 	// Density Round top y bottom
-	/*
-		var drb float64
-		var drt float64
-		var da float64
-	*/
+
+	var drb float64
+	var drt float64
+	var da float64
+
 	// Shape and detail noise.
 	// Shape
 	//	var snsample float64
@@ -293,31 +297,36 @@ func calculaDensidadTest(ro Vectores.Vector, rd Vectores.Vector, weatherMap [WEA
 				break
 			}
 
-			// Shape and detail noise********************************************
-			// Shape
-			/*
-				xShapeCube = int(R(punto.X, MINX, MAXX, 0, float64(SHAPECUBE_X-1)))
-				yShapeCube = int(R(-punto.Y, HMIN, HMAX, 0, float64(SHAPECUBE_Y-1)))
-				zShapeCube = int(R(-punto.Z, 0, MAXHORIZON, 0, float64(SHAPECUBE_Z-1)))
+			// Ojo, las alturas van en negativo.
+			// Porcentaje de altura a la que estamos dentro de la nube.
+			ph = calculaPHTest(-punto.Y, hCloud)
 
-				currColor = shapeCube[xShapeCube][yShapeCube][zShapeCube]
-				snr = float64(currColor.R) / 255
-				sng = float64(currColor.G) / 255
-				snb = float64(currColor.B) / 255
-				sna = float64(currColor.A) / 255
+			// Distorsión de altura en top y bottom. Redondea las bubes; más por arriba que por abajo.
+			//
+			// El multiplicador 0.07 no parece tener demasiado efecto.
+			srb = SAT(R(ph, 0, 0.07, 0, 1))
+			srt = R(ph, wch*0.2, wch, 1, 0)
+			sa = srb * srt
 
-				//snsample = R(snr, (sng*0.625+snb*0.25+sna*0.125)-1, 1, 0, 1)
-				//snsample += 12
-				snr *= 2
-				sng *= 2
-				snb *= 2
-				sna *= 2
-			*/
+			//sa *= 2
+
+			// Distorsión en densidad.
+			//
+			drb = ph * SAT(R(ph, 0, 0.15, 0, 1))
+			drt = SAT(R(ph, 0.9, 1.0, 1, 0))
+			da = drb * drt
 
 			// Si estamos dentro, pasamos a calcular la densidad del punto.
-			noiseValue = math.Abs(p.Noise3D(float64(xremap)*HIGH_FREQ_NOISE, float64(zremap)*HIGH_FREQ_NOISE, hCloud*HIGH_FREQ_NOISE))
+			// Sin distorsión en altura. "Efecto torre".
+			//
+			//noiseValue = math.Abs(p.Noise3D(float64(xremap)*HIGH_FREQ_NOISE, float64(zremap)*HIGH_FREQ_NOISE, hCloud*HIGH_FREQ_NOISE))
+
+			// Distorsión en altura. Más natural.
+			//
+			noiseValue = math.Abs(p.Noise3D(float64(xremap)*HIGH_FREQ_NOISE, float64(zremap)*HIGH_FREQ_NOISE, sa*HIGH_FREQ_NOISE))
+
 			//noiseValue *= 2
-			wcd = 0.3 * wcd * noiseValue
+			wcd = 0.3 * wcd * noiseValue * da
 			densidad += wcd
 
 		}
@@ -397,12 +406,13 @@ func main() {
 			rd = nuevo.Sub(ro).Normalize()
 
 			densidad = SAT(calculaDensidadTest(ro, rd, weatherMap))
-
-			color.R = uint8(densidad * 255)
-			color.G = uint8(densidad * 255)
-			color.B = uint8(densidad * 255)
-			color.A = 255
-
+			/*
+				color.R = uint8(densidad * 255)
+				color.G = uint8(densidad * 255)
+				color.B = uint8(densidad * 255)
+				color.A = 255
+			*/
+			color = mixColor(SKYCOLOR, CLOUDCOLOR, densidad)
 			img.Set(x, y, color)
 		}
 	}

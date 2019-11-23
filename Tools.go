@@ -279,10 +279,10 @@ func generateWeatherMap() {
 
 	for x := 0; x < WEATHER_X-1; x++ {
 		for y := 0; y < WEATHER_Y-1; y++ {
-			weatherMap[x][y].R = byte(255 * SAT(p.Noise2D(float64(x)*MEDIUM_FREQ_NOISE, float64(y)*MEDIUM_FREQ_NOISE)))
-			weatherMap[x][y].G = byte(255 * SAT(p.Noise2D(float64(x)*MEDIUM_FREQ_NOISE, float64(y)*MEDIUM_FREQ_NOISE)))
+			weatherMap[x][y].R = byte(255 * SAT(p.Noise2D(float64(x)*TEST_FREQU_NOISE, float64(y)*TEST_FREQU_NOISE)))
+			weatherMap[x][y].G = byte(255 * SAT(p.Noise2D(float64(x)*HIGH_FREQ_NOISE, float64(y)*HIGH_FREQ_NOISE)))
 			weatherMap[x][y].B = 100 //byte(255 * SAT(p.Noise2D(float64(x) * LOW_FREQ_NOISE,float64(y) * LOW_FREQ_NOISE)))
-			weatherMap[x][y].A = 10
+			weatherMap[x][y].A = 11
 
 			color.R = weatherMap[x][y].R
 			color.G = weatherMap[x][y].G
@@ -401,4 +401,16 @@ func R(v float64, l0 float64, h0 float64, ln float64, hn float64) float64 {
 //
 func Li(v0 float64, v1 float64, ival float64) float64 {
 	return (1-ival)*v0 + ival*v1
+}
+
+// Interpolación entre dos colores.
+//
+func mixColor(x color.RGBA, y color.RGBA, a float64) color.RGBA {
+	var resultado color.RGBA
+
+	resultado.R = uint8(float64(x.R)*(1-a) + float64(y.R)*a)
+	resultado.G = uint8(float64(x.G)*(1-a) + float64(y.G)*a)
+	resultado.B = uint8(float64(x.B)*(1-a) + float64(y.B)*a)
+
+	return resultado
 }
